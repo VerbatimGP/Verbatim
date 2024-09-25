@@ -83,12 +83,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-## 👤 **Author**
-- **Rajveer Jagtap**  
-  Lead Developer | [LinkedIn](https://www.linkedin.com/) | [GitHub](https://github.com/)
-
----
-
 ## 🙌 **Acknowledgments**
 - Special thanks to **OpenAI** for Whisper!  
 - Inspiration from the **React community**.  
