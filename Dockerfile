@@ -2,11 +2,14 @@
 FROM python:3.9-slim
 
 # Install any necessary libraries for audio capture and WebRTC
-RUN xargs apt-get update && apt-get install -y < setup/packages.txt
+RUN apt-get update 
 
 # Set the working directory and copy code
 WORKDIR /app
 COPY . .
+
+# Install Package dependencies
+RUN xargs -a setup/packages.txt -r apt-get install -y
 
 # Install Python dependencies
 RUN pip install -r setup/pip_requirements.txt
