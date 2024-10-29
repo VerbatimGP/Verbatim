@@ -2,22 +2,31 @@
 FROM node:18-bullseye AS node-base
 
 # Install Python 3.9 for WhisperX
-RUN apt-get update && apt-get install -y python3 python3-pip
+RUN apt-get update
 
-# Copy Node.js dependencies
+# Set the working directory and copy code
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
-
-# Copy Python dependencies
-COPY requirements.txt ./
-RUN pip3 install -r requirements.txt
-
-# Copy all source code
 COPY . .
 
-# Expose necessary ports (e.g., 3000 for Node server, adjust for WebRTC)
-EXPOSE 3000
+# Install Package dependencies
+RUN xargs -a setup/packages.txt -r apt-get install -y
+
+# Setup Python and pip
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* 
+
+# Copy Node.js dependencies
+# RUN npm --prefix setup/ install
+RUN npm install -g node-pre-gyp
+RUN npm install wrtc ws child_process
+
+# Copy Python dependencies
+RUN pip install -r setup/pip_requirements_1.txt
+RUN pip install -r setup/pip_requirements_2.txt
+
+# Expose necessary ports
+EXPOSE 3010
 
 # Start the Node.js server
-CMD ["node", "server.js"]
+CMD ["node", "server/server.js"]

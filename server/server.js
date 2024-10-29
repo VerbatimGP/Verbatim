@@ -1,31 +1,75 @@
+const WebSocket = require('ws');
+const wrtc = require('wrtc');
 const { spawn } = require('child_process');
-const WebRTC = require('your-webrtc-module');  // Replace with WebRTC module
 
-// Placeholder function for WebRTC connection setup
-function setupWebRTCConnection(classroomId) {
-    // Code to initialize WebRTC connection for a specific classroom
-}
+const PORT = 3010;  // WebSocket signaling server port
+const wss = new WebSocket.Server({ port: PORT });
+console.log(`WebSocket signaling server started on ws://localhost:${PORT}`);
 
-// Manage each classroom stream in its own thread
-function transcribeClassroom(classroomId, audioStream) {
-    // Spawn the Python transcription process for each classroom
-    const pythonProcess = spawn('python3', ['asr_engine.py', classroomId]);
+// Handle each WebSocket signaling connection
+wss.on('connection', (ws) => {
+    console.log("New signaling connection established");
 
-    audioStream.pipe(pythonProcess.stdin);  // Stream audio to the Python script
+    ws.on('message', async (message) => {
+        const { type, sdp } = JSON.parse(message);
 
-    pythonProcess.stdout.on('data', (data) => {
-        console.log(`Transcription for ${classroomId}: ${data}`);
-        // Handle transcription, translation, summarization output here
+        if (type === 'offer') {
+            const peerConnection = await handleWebRTCConnection(ws, sdp);
+            setupTranscription(peerConnection);
+        }
     });
-
-    pythonProcess.stderr.on('data', (data) => {
-        console.error(`Error for ${classroomId}: ${data}`);
-    });
-}
-
-// Example connection setup for multiple classrooms
-const classrooms = ['classroom_1', 'classroom_2'];  // IDs for demo
-classrooms.forEach(classroomId => {
-    const audioStream = setupWebRTCConnection(classroomId);
-    transcribeClassroom(classroomId, audioStream);
 });
+
+// Function to handle WebRTC connection setup
+async function handleWebRTCConnection(ws, sdpOffer) {
+    const peerConnection = new wrtc.RTCPeerConnection();
+
+    // Handle ICE candidates
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            ws.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
+        }
+    };
+
+    // Set the remote SDP offer
+    await peerConnection.setRemoteDescription(new wrtc.RTCSessionDescription({ type: 'offer', sdp: sdpOffer }));
+
+    // Create an SDP answer
+    const sdpAnswer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(sdpAnswer);
+    ws.send(JSON.stringify({ type: 'answer', sdp: sdpAnswer.sdp }));
+
+    return peerConnection;
+}
+
+// Function to handle the transcription process
+function setupTranscription(peerConnection) {
+    peerConnection.ontrack = (event) => {
+        console.log("New audio track received for transcription");
+
+        const audioTrack = event.track;
+        if (audioTrack.kind === 'audio') {
+            // Spawn a new child process to run asr_engine.py
+            const pythonProcess = spawn('python3', ['asr/asr_engine.py']);
+
+            // Feed audio stream to the Python transcription process
+            audioTrack.ondata = (data) => {
+                pythonProcess.stdin.write(data);
+            };
+
+            // Handle transcription output from asr_engine.py
+            pythonProcess.stdout.on('data', (transcription) => {
+                console.log(`Transcription: ${transcription.toString()}`);
+            });
+
+            // Error handling
+            pythonProcess.stderr.on('data', (error) => {
+                console.error(`Error: ${error.toString()}`);
+            });
+
+            pythonProcess.on('exit', (code) => {
+                console.log(`Python process exited with code ${code}`);
+            });
+        }
+    };
+}

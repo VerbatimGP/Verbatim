@@ -17,7 +17,7 @@ def main(audio_file):
     # compute_type = "float16"
 
     # Model Save
-    model_dir = "./assets/model/"
+    model_dir = "../assets/model/"
 
     # Batched Transcription
     model_t = whisperx.load_model(model, device, compute_type = compute_type, download_root = model_dir)
