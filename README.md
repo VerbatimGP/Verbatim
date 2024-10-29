@@ -1,6 +1,4 @@
-Here’s a sample of a good README file format that can make your repository stand out and look more attractive, using emojis, headers, bullet points, and a professional structure. I'll assume you're working on a **React project with real-time transcription using OpenAI Whisper**. You can modify this as per your exact project setup.
 
----
 
 # 📝 **Real-Time Transcription with OpenAI Whisper** 🎙️
 
