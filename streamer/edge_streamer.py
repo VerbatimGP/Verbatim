@@ -1,17 +1,17 @@
 import asyncio
 import sounddevice as sd
 import numpy as np
+import websockets
+import json
 from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
-from aiortc.contrib.signaling import TcpSocketSignaling
 
-# WebRTC Configuration
-SIGNALING_HOST = 'localhost'    # Replace with the server IP or hostname
-SIGNALING_PORT = 3010           # Replace with the signaling server port
+# Configuration
+SIGNALING_SERVER_URI = 'ws://localhost:3010'  # Replace with actual server address
 
 # Audio configuration
 SAMPLE_RATE = 44100
 CHANNELS = 1
-DURATION = 10  # seconds
+CHUNK_DURATION = 0.1  # seconds
 
 class AudioStreamTrack(MediaStreamTrack):
     kind = "audio"
@@ -22,54 +22,46 @@ class AudioStreamTrack(MediaStreamTrack):
         self.channels = CHANNELS
 
     async def recv(self):
-        # Capture audio for a small chunk duration and send as RTP packets
-        audio_chunk = sd.rec(int(SAMPLE_RATE * 0.1), samplerate=SAMPLE_RATE, channels=CHANNELS)
+        audio_chunk = sd.rec(int(SAMPLE_RATE * CHUNK_DURATION), samplerate=SAMPLE_RATE, channels=CHANNELS)
         sd.wait()
         audio_data = (audio_chunk * 32767).astype(np.int16).tobytes()
-        
         return audio_data
 
-
-async def run():
-    # Initialize WebRTC connection and signaling
+async def start_stream():
+    # Create a WebRTC peer connection
     pc = RTCPeerConnection()
-    signaling = TcpSocketSignaling(SIGNALING_HOST, SIGNALING_PORT)
 
-    # Create a track for the audio stream
-    audio_track = AudioStreamTrack()
-    pc.addTrack(audio_track)
+    # Connect to the WebSocket signaling server
+    async with websockets.connect(SIGNALING_SERVER_URI) as websocket:
+        print("Connected to signaling server")
 
-    @pc.on("iceconnectionstatechange")
-    async def on_ice_connection_state_change():
-        print("ICE connection state:", pc.iceConnectionState)
-        if pc.iceConnectionState == "failed":
-            await pc.close()
+        # Set up an audio track and add to peer connection
+        audio_track = AudioStreamTrack()
+        pc.addTrack(audio_track)
 
-    # Connect to the signaling server
-    await signaling.connect()
+        # Create an SDP offer and send to the signaling server
+        offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+        await websocket.send(json.dumps({
+            "type": "offer",
+            "sdp": pc.localDescription.sdp
+        }))
 
-    # Send an offer and set the local description
-    offer = await pc.createOffer()
-    await pc.setLocalDescription(offer)
+        # Wait for the SDP answer from the server
+        async for message in websocket:
+            data = json.loads(message)
 
-    # Exchange the SDP information
-    await signaling.send(pc.localDescription)
-    answer = await signaling.receive()
-    await pc.setRemoteDescription(answer)
+            if data['type'] == 'answer':
+                answer = RTCSessionDescription(sdp=data['sdp'], type=data['type'])
+                await pc.setRemoteDescription(answer)
+                print("Connection established, streaming audio...")
 
-    # Keep the connection alive and audio streaming
-    try:
-        await signaling.close()
-    finally:
-        await pc.close()
+            elif data['type'] == 'candidate':
+                candidate = data['candidate']
+                await pc.addIceCandidate(candidate)
 
+async def main():
+    await start_stream()
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(run())
-    except KeyboardInterrupt:
-        pass
-    finally:
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
+    asyncio.run(main())

@@ -1,5 +1,5 @@
 # Base image for Python
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 # Install any necessary libraries for audio capture and WebRTC
 RUN apt-get update 
