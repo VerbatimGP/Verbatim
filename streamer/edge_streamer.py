@@ -6,7 +6,7 @@ import json
 from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
 
 # Configuration
-SIGNALING_SERVER_URI = 'ws://localhost:3010'  # Replace with actual server address
+SIGNALING_SERVER_URI = 'ws://multi-asr-server:3010'  # Replace with actual server address
 
 # Audio configuration
 SAMPLE_RATE = 44100
@@ -20,11 +20,14 @@ class AudioStreamTrack(MediaStreamTrack):
         super().__init__()
         self.sample_rate = SAMPLE_RATE
         self.channels = CHANNELS
+        self.audio_chunk = np.zeros((int(SAMPLE_RATE * CHUNK_DURATION), CHANNELS), dtype=np.float32)
 
     async def recv(self):
-        audio_chunk = sd.rec(int(SAMPLE_RATE * CHUNK_DURATION), samplerate=SAMPLE_RATE, channels=CHANNELS)
-        sd.wait()
-        audio_data = (audio_chunk * 32767).astype(np.int16).tobytes()
+        # Record audio
+        self.audio_chunk = sd.rec(int(SAMPLE_RATE * CHUNK_DURATION), samplerate=SAMPLE_RATE, channels=CHANNELS, blocking=True)
+        audio_data = (self.audio_chunk * 32767).astype(np.int16).tobytes()
+        
+        # Create a new frame for WebRTC
         return audio_data
 
 async def start_stream():

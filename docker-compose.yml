@@ -1,0 +1,13 @@
+services:
+  multi-asr-server:
+    image: multi-asr-server
+    ports:
+      - "3010:3010"  # Expose this port to the host if needed
+  edge_streamer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - multi-asr-server
+    environment:
+      SIGNALING_SERVER_URI: "ws://multi-asr-server:3010"  # Use the service name
