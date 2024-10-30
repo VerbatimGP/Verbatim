@@ -9,7 +9,9 @@ WORKDIR /app
 COPY . .
 
 # Install Package dependencies
-RUN xargs -a setup/packages.txt -r apt-get install -y
+RUN xargs -a setup/packages.txt -r apt-get install -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 RUN pip install -r setup/pip_requirements.txt
