@@ -1,94 +1,70 @@
+# Getting Started with Create React App
 
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-# 📝 **Real-Time Transcription with OpenAI Whisper** 🎙️
+## Available Scripts
 
-Welcome to the **Real-Time Transcription** project! This repository utilizes **OpenAI's Whisper** model to transcribe audio into text in real-time, integrated with a sleek front-end built using **ReactJS**. ⚡
+In the project directory, you can run:
 
-![Whisper Logo](https://img.shields.io/badge/OpenAI-Whisper-blue) ![React Logo](https://img.shields.io/badge/ReactJS-UI-green) ![License](https://img.shields.io/badge/License-MIT-blue.svg)
+### `npm start`
 
----
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-## 🚀 **Features** 
-- 🎤 **Real-time Audio Transcription**: Transcribe speech to text with minimal latency.
-- 🧠 **Powered by OpenAI Whisper**: Leverage Whisper’s state-of-the-art AI model for highly accurate transcriptions.
-- 🌐 **User-Friendly Interface**: Simple and intuitive front-end built with ReactJS.
-- 🛠️ **Customizable Settings**: Modify transcription settings like language, speed, and more.
-- 📊 **Live Word Count & Statistics**: View real-time stats on the transcription.
-- 🔄 **Multi-Platform Compatibility**: Works across web browsers, mobile devices, and desktops.
-  
----
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
 
-## 💻 **Tech Stack**
-- **Frontend**: ReactJS, HTML5, CSS3, JavaScript (ES6+)
-- **Backend**: OpenAI Whisper API, Node.js (Optional if using for backend)
-- **Deployment**: Vercel/Netlify/Heroku
-- **Version Control**: Git, GitHub
+### `npm test`
 
----
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-## 🛠️ **Installation Guide**
+### `npm run build`
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/your-username/real-time-transcription.git
-cd real-time-transcription
-```
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-### 2. Install Dependencies
-```bash
-npm install
-```
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
-### 3. Start the Development Server
-```bash
-npm start
-```
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-Your app should now be running at `http://localhost:3000/` 🚀.
+### `npm run eject`
 
----
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
 
-## 📝 **Usage Instructions**
-1. **Upload Audio** 🎧 or **use your microphone** 🎙️ to start transcription.
-2. View the transcription in real-time on the screen! 💬
-3. Adjust settings like language and speed from the options menu.
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
----
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-## 🤝 **Contributing**
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
-We welcome contributions! Feel free to open an issue or submit a pull request if you'd like to improve the project.
+## Learn More
 
-1. Fork the repo
-2. Create your feature branch: `git checkout -b feature/YourFeature`
-3. Commit your changes: `git commit -m 'Add some feature'`
-4. Push to the branch: `git push origin feature/YourFeature`
-5. Open a pull request
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
----
+To learn React, check out the [React documentation](https://reactjs.org/).
 
-## 📦 **Deployment**
-For deploying on Vercel:
-1. Login to [Vercel](https://vercel.com/) and create a new project.
-2. Import your repository.
-3. Click **Deploy** and your app will be live! 🌐
+### Code Splitting
 
----
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
 
-## 🛡️ **License**
+### Analyzing the Bundle Size
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
 
----
+### Making a Progressive Web App
 
-## 🙌 **Acknowledgments**
-- Special thanks to **OpenAI** for Whisper!  
-- Inspiration from the **React community**.  
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
 
----
+### Advanced Configuration
 
-### ⭐ **Don't forget to star this repository if you found it useful!** ⭐
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
 
----
+### Deployment
 
-You can adapt this to your needs by adding specifics related to your project and including more instructions or details about other features. Adding emojis and visual elements makes it more appealing, and including the deployment steps helps users get your project running easily.
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
