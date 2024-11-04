@@ -1,4 +1,5 @@
 av
 aiortc
+numpy
 websockets
 sounddevice

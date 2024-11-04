@@ -18,6 +18,9 @@ services:
       - PYTHONUNBUFFERED=1
     networks:
       - webnet
+    devices:
+      - "/dev/snd:/dev/snd"
+    privileged: true
 
 networks:
   webnet:
