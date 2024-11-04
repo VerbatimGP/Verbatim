@@ -1,24 +1,34 @@
 const WebSocket = require('ws');
 const wrtc = require('wrtc');
 const { spawn } = require('child_process');
+const PORT = process.env.PORT || 3010;
 
-const PORT = process.env.PORT || 3010; // Using environment variable for flexibility
+// Set up logging
+const logger = require('winston');
+logger.configure({
+    level: 'INFO',
+    transports: [
+        new logger.transports.Console({ format: logger.format.simple() })
+    ]
+});
+
+// Start WebSocket server
 const wss = new WebSocket.Server({ port: PORT });
-console.log(`WebSocket signaling server started on ws://multi-asr-server:${PORT}`);
+logger.info(`WebSocket signaling server started on ws://multi-asr-server:${PORT}`);
 
 // Handle each WebSocket signaling connection
 wss.on('connection', (ws) => {
-    console.log("New signaling connection established");
+    logger.info("New signaling connection established");
 
     ws.on('message', async (message) => {
-        console.log("Received message from client:", message);
-        const { type, sdp } = JSON.parse(message);
+        logger.info("Received message from client:", message);
+        const { type, sdp, candidate } = JSON.parse(message);
 
         if (type === 'offer') {
             const peerConnection = await handleWebRTCConnection(ws, sdp);
             setupTranscription(peerConnection);
         } else if (type === 'candidate') {
-            await addIceCandidate(ws, JSON.parse(message));
+            await addIceCandidate(ws, candidate);
         }
     });
 });
@@ -31,16 +41,16 @@ async function handleWebRTCConnection(ws, sdpOffer) {
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
             ws.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
-            console.log("Sent ICE candidate to client:", event.candidate);
+            logger.info("Sent ICE candidate to client:", event.candidate);
         }
     };
 
-    // Logging connection state changes
+    // Log connection and signaling state changes
     peerConnection.onconnectionstatechange = () => {
-        console.log(`Connection state: ${peerConnection.connectionState}`);
+        logger.info(`Connection state: ${peerConnection.connectionState}`);
     };
     peerConnection.onsignalingstatechange = () => {
-        console.log(`Signaling state: ${peerConnection.signalingState}`);
+        logger.info(`Signaling state: ${peerConnection.signalingState}`);
     };
 
     // Set the remote SDP offer
@@ -50,25 +60,26 @@ async function handleWebRTCConnection(ws, sdpOffer) {
     const sdpAnswer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(sdpAnswer);
     ws.send(JSON.stringify({ type: 'answer', sdp: sdpAnswer.sdp }));
-    console.log("Sent SDP answer to client");
+    logger.info("Sent SDP answer to client");
 
     return peerConnection;
 }
 
 // Function to handle incoming ICE candidate
-async function addIceCandidate(ws, candidate) {
+async function addIceCandidate(ws, candidateData) {
     try {
-        await peerConnection.addIceCandidate(new wrtc.RTCIceCandidate(candidate));
-        console.log("Added ICE candidate from client");
+        const candidate = new wrtc.RTCIceCandidate(candidateData);
+        await peerConnection.addIceCandidate(candidate);
+        logger.info("Added ICE candidate from client");
     } catch (error) {
-        console.error("Error adding ICE candidate:", error);
+        logger.error("Error adding ICE candidate:", error);
     }
 }
 
 // Function to handle transcription
 function setupTranscription(peerConnection) {
     peerConnection.ontrack = (event) => {
-        console.log("New audio track received for transcription");
+        logger.info("New audio track received for transcription");
 
         const audioTrack = event.track;
         if (audioTrack.kind === 'audio') {
@@ -76,18 +87,19 @@ function setupTranscription(peerConnection) {
 
             audioTrack.ondata = (data) => {
                 pythonProcess.stdin.write(data);
+                logger.info("Audio data received and forwarded to ASR engine");
             };
 
             pythonProcess.stdout.on('data', (transcription) => {
-                console.log(`Transcription: ${transcription.toString()}`);
+                logger.info(`Transcription result: ${transcription.toString()}`);
             });
 
             pythonProcess.stderr.on('data', (error) => {
-                console.error(`Error: ${error.toString()}`);
+                logger.error(`Error in ASR engine: ${error.toString()}`);
             });
 
             pythonProcess.on('exit', (code) => {
-                console.log(`Python process exited with code ${code}`);
+                logger.info(`Python process exited with code ${code}`);
             });
         }
     };

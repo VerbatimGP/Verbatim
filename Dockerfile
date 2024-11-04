@@ -19,7 +19,7 @@ RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 \
 # Copy Node.js dependencies
 # RUN npm --prefix setup/ install
 RUN npm install -g node-pre-gyp
-RUN npm install wrtc ws child_process
+RUN npm install wrtc ws child_process winston
 
 # Copy Python dependencies
 RUN pip install -r setup/pip_requirements_1.txt
