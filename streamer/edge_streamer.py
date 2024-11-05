@@ -25,31 +25,33 @@ class AudioStreamTrack(MediaStreamTrack):
         self.sample_rate = SAMPLE_RATE
         self.channels = CHANNELS
         self.timestamp = 0  # Initialize the timestamp
+        self.audio_lock = asyncio.Lock()  # Lock for synchronizing audio access
 
     async def recv(self):
-        # Record audio chunk from the microphone
-        audio_chunk = sd.rec(int(SAMPLE_RATE * CHUNK_DURATION), samplerate=SAMPLE_RATE, channels=CHANNELS)
-        sd.wait()
-        
-        # Log audio recording
-        logger.info("Audio recorded from microphone")
-        
-        # Convert from float32 to int16
-        audio_data = (audio_chunk * 32767).astype(np.int16).reshape(1, -1)
-        
-        # Create a new PyAV audio frame
-        audio_frame = av.AudioFrame.from_ndarray(audio_data, format="s16", layout="mono")
-        audio_frame.sample_rate = self.sample_rate
-        
-        # Set the timestamp for the audio frame
-        audio_frame.pts = self.timestamp  # Set presentation timestamp
-        self.timestamp += audio_frame.samples  # Increment timestamp by the number of samples in this frame
-        
-        # Log audio frame creation
-        logger.info("Audio frame created with pts=%d", audio_frame.pts)
+        async with self.audio_lock:  # Ensure exclusive access to audio recording
+            # Record audio chunk from the microphone
+            audio_chunk = sd.rec(int(SAMPLE_RATE * CHUNK_DURATION), samplerate=SAMPLE_RATE, channels=CHANNELS)
+            sd.wait()
+            
+            # Log audio recording
+            logger.info("Audio recorded from microphone")
+            
+            # Convert from float32 to int16
+            audio_data = (audio_chunk * 32767).astype(np.int16).reshape(1, -1)
+            
+            # Create a new PyAV audio frame
+            audio_frame = av.AudioFrame.from_ndarray(audio_data, format="s16", layout="mono")
+            audio_frame.sample_rate = self.sample_rate
+            
+            # Set the timestamp for the audio frame
+            audio_frame.pts = self.timestamp  # Set presentation timestamp
+            self.timestamp += audio_frame.samples  # Increment timestamp by the number of samples in this frame
+            
+            # Log audio frame creation
+            logger.info("Audio frame created with pts=%d", audio_frame.pts)
 
-        await asyncio.sleep(CHUNK_DURATION)  # Match the duration of the chunk
-        return audio_frame
+            await asyncio.sleep(CHUNK_DURATION)  # Match the duration of the chunk
+            return audio_frame
 
 async def connect_to_signaling_server():
     async with websockets.connect(SIGNALING_SERVER_URI) as ws:
@@ -67,9 +69,9 @@ async def connect_to_signaling_server():
                 logger.info("Received message from server: %s", data)  # Log received message
 
                 if data["type"] == "answer":
-                    await handle_sdp_answer(data, pc)
+                    await handle_sdp_answer(data)
                 elif data["type"] == "candidate":
-                    await handle_ice_candidate(data, pc)
+                    await handle_ice_candidate(data)
             except json.JSONDecodeError:
                 logger.error("Error decoding message from server: %s", message)
             except Exception as e:
@@ -85,6 +87,7 @@ async def initiate_webrtc_connection(ws):
 
     # Add audio track
     audio_track = AudioStreamTrack()
+    logger.info("Audio track initialized")
     pc.addTrack(audio_track)
     logger.info("Audio track added to peer connection")
 
@@ -94,12 +97,12 @@ async def initiate_webrtc_connection(ws):
     await ws.send(json.dumps({"type": "offer", "sdp": pc.localDescription.sdp}))
     logger.info("Sent SDP offer to signaling server")
 
-async def handle_sdp_answer(data, pc):
+async def handle_sdp_answer(data):
     sdp = data["sdp"]
     await pc.setRemoteDescription(RTCSessionDescription(sdp, "answer"))
     logger.info("Received SDP answer from server")
 
-async def handle_ice_candidate(data, pc):
+async def handle_ice_candidate(data):
     candidate = data.get("candidate")
     if candidate:
         try:

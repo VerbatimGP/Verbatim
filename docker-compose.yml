@@ -2,7 +2,7 @@ services:
   multi-asr-server:
     image: multi-asr-server
     ports:
-      - "3010:3010"
+      - "3010:3010/udp"
     environment:
       - PORT=3010
     networks:
