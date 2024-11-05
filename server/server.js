@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3010;
 // Set up logging
 const logger = require('winston');
 logger.configure({
-    level: 'INFO',
+    level: 'info',
     transports: [
         new logger.transports.Console({ format: logger.format.simple() })
     ]
@@ -20,18 +20,41 @@ logger.info(`WebSocket signaling server started on ws://multi-asr-server:${PORT}
 wss.on('connection', (ws) => {
     logger.info("New signaling connection established");
 
-    ws.on('message', async (message) => {
-        logger.info("Received message from client:", message);
-        const { type, sdp, candidate } = JSON.parse(message);
+    // Create a queue for this connection
+    const messageQueue = [];
 
-        if (type === 'offer') {
-            const peerConnection = await handleWebRTCConnection(ws, sdp);
-            setupTranscription(peerConnection);
-        } else if (type === 'candidate') {
-            await addIceCandidate(ws, candidate);
+    // Set up an async function to process messages for this connection
+    const processQueue = async () => {
+        while (messageQueue.length > 0) {
+            const message = messageQueue.shift();
+            await handleMessage(ws, message);
         }
+    };
+
+    // Push messages to the queue and start processing
+    ws.on('message', async (message) => {
+        messageQueue.push(message); // Add to this connection's queue
+        processQueue(); // Start processing the queue
+    });
+
+    // Cleanup when connection closes
+    ws.on('close', () => {
+        logger.info("Connection closed, cleaning up.");
     });
 });
+
+// Function to handle individual messages
+async function handleMessage(ws, message) {
+    logger.info("Received message from client:", message);
+    const { type, sdp, candidate } = JSON.parse(message);
+
+    if (type === 'offer') {
+        const peerConnection = await handleWebRTCConnection(ws, sdp);
+        setupTranscription(peerConnection);
+    } else if (type === 'candidate') {
+        await addIceCandidate(ws, candidate);
+    }
+}
 
 // Function to handle WebRTC connection setup
 async function handleWebRTCConnection(ws, sdpOffer) {
@@ -98,9 +121,19 @@ function setupTranscription(peerConnection) {
                 logger.error(`Error in ASR engine: ${error.toString()}`);
             });
 
-            pythonProcess.on('exit', (code) => {
-                logger.info(`Python process exited with code ${code}`);
+            pythonProcess.on('close', (code) => {
+                logger.info(`ASR process exited with code ${code}`);
             });
         }
     };
 }
+
+// Error handling for server
+process.on('uncaughtException', (error) => {
+    logger.error(`Uncaught Exception: ${error}`);
+});
+process.on('unhandledRejection', (error) => {
+    logger.error(`Unhandled Rejection: ${error}`);
+});
+
+logger.info("WebSocket signaling server is running...");
