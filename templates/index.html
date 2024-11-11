@@ -118,7 +118,7 @@
 <body>
     <div class="container">
         <h1>Advanced Audio Transcription Dashboard</h1>
-        
+
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 <div class="flash-messages">
@@ -128,16 +128,15 @@
                 </div>
             {% endif %}
         {% endwith %}
-        
+
         <div class="dashboard">
             <div class="card">
                 <h2>Live Transcription</h2>
-                <p>Record and transcribe live audio in real-time. Recording duration: 30 seconds.</p>
-                <form action="/live_record" method="post">
-                    <button type="submit">Start Recording</button>
-                </form>
+                <p>Record and transcribe live audio in real-time. Recording duration: until stopped.</p>
+                <button id="start-button">Start Recording</button>
+                <button id="stop-button" style="display:none;">Stop Recording</button>
             </div>
-            
+
             <div class="card">
                 <h2>Upload Audio File</h2>
                 <p>Upload and transcribe an audio file (WAV, MP3, M4A supported).</p>
@@ -148,23 +147,53 @@
             </div>
         </div>
 
-        {% if transcription or summary %}
         <div class="result-section">
-            {% if transcription %}
             <div class="result-card">
-                <h3>Full Transcription</h3>
-                <div class="result-text">{{ transcription }}</div>
+                <h3>Real-Time Transcription</h3>
+                <div id="transcription" class="result-text"></div>
             </div>
-            {% endif %}
-            
-            {% if summary %}
             <div class="result-card">
                 <h3>Summary</h3>
-                <div class="result-text">{{ summary }}</div>
+                <div id="summary" class="result-text"></div>
             </div>
-            {% endif %}
         </div>
-        {% endif %}
     </div>
+
+    <script>
+        const startButton = document.getElementById('start-button');
+        const stopButton = document.getElementById('stop-button');
+        const transcriptionDiv = document.getElementById('transcription');
+        const summaryDiv = document.getElementById('summary');
+        let eventSource;
+
+        startButton.onclick = function() {
+            startButton.style.display = 'none';
+            stopButton.style.display = 'inline-block';
+            transcriptionDiv.innerHTML = "";
+            summaryDiv.innerHTML = "";
+
+            // Start the EventSource for real-time transcription updates
+            eventSource = new EventSource("/start_live_transcription");
+
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.summary) {
+                    summaryDiv.innerHTML = `<strong>Summary:</strong> ${data.summary}`;
+                } else if (data.speaker && data.text) {
+                    transcriptionDiv.innerHTML += `<strong>${data.speaker}:</strong> ${data.text}<br>`;
+                }
+            };
+        };
+
+        stopButton.onclick = function() {
+            fetch('/stop_transcription', { method: 'POST' })
+                .then(() => {
+                    startButton.style.display = 'inline-block';
+                    stopButton.style.display = 'none';
+                    if (eventSource) eventSource.close();
+                })
+                .catch(error => console.error('Error stopping transcription:', error));
+        };
+    </script>
 </body>
 </html>
